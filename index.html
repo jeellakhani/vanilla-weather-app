@@ -10,8 +10,10 @@
 </head>
 <body>
 
-  <!-- Animated weather background -->
-  <div id="bg-effect"></div>
+  <!-- Dynamic Background Video -->
+  <video id="bg-video" autoplay muted loop playsinline>
+    <source id="bg-source" src="" type="video/mp4" />
+  </video>
   <div class="overlay"></div>
 
   <div class="app">
@@ -45,6 +47,7 @@
     </div>
 
     <div class="error-msg" id="error-msg" style="display:none;"></div>
+
   </div>
 
   <script src="app.js"></script>
