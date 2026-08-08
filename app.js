@@ -41,7 +41,8 @@ const card      = document.getElementById("weather-card");
 const errorMsg  = document.getElementById("error-msg");
 
 async function getWeather(city) {
-  if (!city.trim()) return;
+  city = city.trim();
+  if (!city) return;
 
   card.style.display = "none";
   errorMsg.style.display = "none";
