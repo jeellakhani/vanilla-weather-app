@@ -6,32 +6,42 @@
 const GEO_URL     = "https://geocoding-api.open-meteo.com/v1/search";
 const WEATHER_URL = "https://api.open-meteo.com/v1/forecast";
 
-// WMO Weather code → { emoji, label }
+// WMO Weather code → { emoji, label, bg (video category) }
 const weatherInfo = {
-  0:  { emoji: "☀️",  label: "Clear Sky" },
-  1:  { emoji: "🌤️", label: "Mainly Clear" },
-  2:  { emoji: "⛅",  label: "Partly Cloudy" },
-  3:  { emoji: "☁️",  label: "Overcast" },
-  45: { emoji: "🌫️", label: "Foggy" },
-  48: { emoji: "🌫️", label: "Icy Fog" },
-  51: { emoji: "🌦️", label: "Light Drizzle" },
-  53: { emoji: "🌦️", label: "Drizzle" },
-  55: { emoji: "🌧️", label: "Heavy Drizzle" },
-  61: { emoji: "🌧️", label: "Light Rain" },
-  63: { emoji: "🌧️", label: "Rain" },
-  65: { emoji: "🌧️", label: "Heavy Rain" },
-  71: { emoji: "❄️",  label: "Light Snow" },
-  73: { emoji: "❄️",  label: "Snow" },
-  75: { emoji: "❄️",  label: "Heavy Snow" },
-  77: { emoji: "❄️",  label: "Snow Grains" },
-  80: { emoji: "🌦️", label: "Rain Showers" },
-  81: { emoji: "🌧️", label: "Heavy Showers" },
-  82: { emoji: "🌧️", label: "Violent Showers" },
-  85: { emoji: "❄️",  label: "Snow Showers" },
-  86: { emoji: "❄️",  label: "Heavy Snow Showers" },
-  95: { emoji: "⛈️",  label: "Thunderstorm" },
-  96: { emoji: "⛈️",  label: "Thunderstorm w/ Hail" },
-  99: { emoji: "⛈️",  label: "Thunderstorm w/ Heavy Hail" },
+  0:  { emoji: "☀️",  label: "Clear Sky",                  bg: "sunny" },
+  1:  { emoji: "🌤️", label: "Mainly Clear",                bg: "sunny" },
+  2:  { emoji: "⛅",  label: "Partly Cloudy",               bg: "cloudy" },
+  3:  { emoji: "☁️",  label: "Overcast",                    bg: "cloudy" },
+  45: { emoji: "🌫️", label: "Foggy",                       bg: "foggy" },
+  48: { emoji: "🌫️", label: "Icy Fog",                     bg: "foggy" },
+  51: { emoji: "🌦️", label: "Light Drizzle",               bg: "rainy" },
+  53: { emoji: "🌦️", label: "Drizzle",                     bg: "rainy" },
+  55: { emoji: "🌧️", label: "Heavy Drizzle",               bg: "rainy" },
+  61: { emoji: "🌧️", label: "Light Rain",                  bg: "rainy" },
+  63: { emoji: "🌧️", label: "Rain",                        bg: "rainy" },
+  65: { emoji: "🌧️", label: "Heavy Rain",                  bg: "rainy" },
+  71: { emoji: "❄️",  label: "Light Snow",                  bg: "snowy" },
+  73: { emoji: "❄️",  label: "Snow",                        bg: "snowy" },
+  75: { emoji: "❄️",  label: "Heavy Snow",                  bg: "snowy" },
+  77: { emoji: "❄️",  label: "Snow Grains",                 bg: "snowy" },
+  80: { emoji: "🌦️", label: "Rain Showers",                bg: "rainy" },
+  81: { emoji: "🌧️", label: "Heavy Showers",               bg: "rainy" },
+  82: { emoji: "🌧️", label: "Violent Showers",             bg: "rainy" },
+  85: { emoji: "❄️",  label: "Snow Showers",                bg: "snowy" },
+  86: { emoji: "❄️",  label: "Heavy Snow Showers",          bg: "snowy" },
+  95: { emoji: "⛈️",  label: "Thunderstorm",                bg: "stormy" },
+  96: { emoji: "⛈️",  label: "Thunderstorm w/ Hail",        bg: "stormy" },
+  99: { emoji: "⛈️",  label: "Thunderstorm w/ Heavy Hail",  bg: "stormy" },
+};
+
+// Free video URLs (Mixkit CDN — no key needed)
+const bgVideos = {
+  sunny:  "https://cdn.mixkit.co/videos/preview/mixkit-sun-in-the-blue-sky-with-trees-2519-large.mp4",
+  cloudy: "https://cdn.mixkit.co/videos/preview/mixkit-clouds-and-blue-sky-2408-large.mp4",
+  rainy:  "https://cdn.mixkit.co/videos/preview/mixkit-rain-falling-on-the-water-of-a-lake-seen-up-close-18312-large.mp4",
+  snowy:  "https://cdn.mixkit.co/videos/preview/mixkit-snowflakes-falling-on-a-forest-33840-large.mp4",
+  stormy: "https://cdn.mixkit.co/videos/preview/mixkit-stormy-clouds-in-the-sky-1177-large.mp4",
+  foggy:  "https://cdn.mixkit.co/videos/preview/mixkit-going-through-a-heavy-fog-among-bushes-4244-large.mp4",
 };
 
 // DOM elements
@@ -39,6 +49,19 @@ const cityInput = document.getElementById("city-input");
 const searchBtn = document.getElementById("search-btn");
 const card      = document.getElementById("weather-card");
 const errorMsg  = document.getElementById("error-msg");
+const bgVideo   = document.getElementById("bg-video");
+const bgSource  = document.getElementById("bg-source");
+
+// Update background video based on weather type
+function updateBackground(type) {
+  const url = bgVideos[type] ?? bgVideos["sunny"];
+  if (bgSource.src === url) return; // already playing
+
+  bgVideo.classList.remove("loaded");
+  bgSource.src = url;
+  bgVideo.load();
+  bgVideo.oncanplay = () => bgVideo.classList.add("loaded");
+}
 
 async function getWeather(city) {
   city = city.trim();
@@ -84,8 +107,8 @@ async function getWeather(city) {
 }
 
 function showWeather(city, country, current) {
-  const code  = current.weather_code;
-  const info  = weatherInfo[code] ?? { emoji: "🌡️", label: "Unknown" };
+  const code = current.weather_code;
+  const info = weatherInfo[code] ?? { emoji: "🌡️", label: "Unknown", bg: "sunny" };
 
   document.getElementById("city-name").textContent    = `${city}, ${country}`;
   document.getElementById("weather-icon").textContent = info.emoji;
@@ -94,6 +117,9 @@ function showWeather(city, country, current) {
   document.getElementById("humidity").textContent     = `${current.relative_humidity_2m}%`;
   document.getElementById("wind").textContent         = `${Math.round(current.wind_speed_10m)} km/h`;
   document.getElementById("feels-like").textContent   = `${Math.round(current.apparent_temperature)}°C`;
+
+  // 🎬 Change background video based on weather
+  updateBackground(info.bg);
 
   card.style.display = "block";
 }
