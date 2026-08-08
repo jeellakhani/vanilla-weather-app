@@ -1,13 +1,9 @@
 :root {
   --accent: #e94560;
   --accent-dark: #c73652;
-  --bg-start: #1a1a2e;
-  --bg-mid: #16213e;
-  --bg-end: #0f3460;
   --text: #ffffff;
-  --text-muted: rgba(255, 255, 255, 0.5);
-  --glass: rgba(255, 255, 255, 0.07);
-  --border: rgba(255, 255, 255, 0.12);
+  --glass: rgba(255, 255, 255, 0.1);
+  --border: rgba(255, 255, 255, 0.15);
 }
 
 * {
@@ -19,40 +15,169 @@
 body {
   font-family: 'Inter', sans-serif;
   min-height: 100vh;
-  background: linear-gradient(135deg, var(--bg-start) 0%, var(--bg-mid) 50%, var(--bg-end) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  background: #1a1a2e;
 }
 
-/* ── Background Video ── */
-#bg-video {
+/* ─────────────────────────────────────────
+   ANIMATED BACKGROUND
+───────────────────────────────────────── */
+#bg-effect {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  inset: 0;
   z-index: 0;
-  opacity: 0;
-  transition: opacity 1.2s ease;
+  overflow: hidden;
+  transition: background 1.8s ease;
 }
 
-#bg-video.loaded {
-  opacity: 1;
-}
+/* Weather-specific gradients */
+#bg-effect.bg-sunny  { background: linear-gradient(to bottom, #0f6fd1 0%, #56aee2 50%, #ffe57a 100%); }
+#bg-effect.bg-cloudy { background: linear-gradient(to bottom, #3d4f61 0%, #607d8b 60%, #90a4ae 100%); }
+#bg-effect.bg-rainy  { background: linear-gradient(to bottom, #0d1b2a 0%, #1b3a5c 60%, #274472 100%); }
+#bg-effect.bg-snowy  { background: linear-gradient(to bottom, #8bbcde 0%, #c8dff0 60%, #e8f4fc 100%); }
+#bg-effect.bg-stormy { background: linear-gradient(to bottom, #080808 0%, #1a1a2e 50%, #16213e 100%); }
+#bg-effect.bg-foggy  { background: linear-gradient(to bottom, #5d6d7e 0%, #99abb8 50%, #cdd6de 100%); }
 
-/* Dark overlay so text stays readable */
+/* Dark overlay for card readability */
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.38);
   z-index: 1;
   pointer-events: none;
 }
 
-/* ── App Content ── */
+/* ─────────────────────────────────────────
+   RAIN
+───────────────────────────────────────── */
+.raindrop {
+  position: absolute;
+  top: -30px;
+  width: 1.5px;
+  border-radius: 2px;
+  background: linear-gradient(to bottom, transparent, rgba(180, 220, 255, 0.85));
+  animation: fall-rain linear infinite;
+}
+
+@keyframes fall-rain {
+  0%   { transform: translateY(0) skewX(-10deg); }
+  100% { transform: translateY(110vh) skewX(-10deg); }
+}
+
+/* ─────────────────────────────────────────
+   SNOW
+───────────────────────────────────────── */
+.snowflake {
+  position: absolute;
+  top: -30px;
+  color: rgba(255, 255, 255, 0.9);
+  animation: fall-snow ease-in-out infinite;
+  user-select: none;
+}
+
+@keyframes fall-snow {
+  0%   { transform: translateY(0) translateX(0) rotate(0deg); }
+  50%  { transform: translateY(50vh) translateX(30px) rotate(180deg); }
+  100% { transform: translateY(110vh) translateX(0px) rotate(360deg); }
+}
+
+/* ─────────────────────────────────────────
+   SUN RAYS
+───────────────────────────────────────── */
+.sun-core {
+  position: absolute;
+  top: -120px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,225,80,0.6) 0%, transparent 70%);
+  animation: sun-pulse 3s ease-in-out infinite;
+}
+
+@keyframes sun-pulse {
+  0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.6; }
+  50%       { transform: translateX(-50%) scale(1.15); opacity: 0.9; }
+}
+
+.sun-ray {
+  position: absolute;
+  top: -60px;
+  left: 50%;
+  width: 3px;
+  border-radius: 4px;
+  background: linear-gradient(to bottom, rgba(255, 220, 50, 0.7), transparent);
+  transform-origin: bottom center;
+  animation: rotate-sun linear infinite;
+}
+
+@keyframes rotate-sun {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ─────────────────────────────────────────
+   LIGHTNING (storm)
+───────────────────────────────────────── */
+.lightning-flash {
+  position: absolute;
+  inset: 0;
+  background: white;
+  opacity: 0;
+  pointer-events: none;
+  animation: lightning linear infinite;
+}
+
+@keyframes lightning {
+  0%, 90%, 100% { opacity: 0; }
+  91%, 93%      { opacity: 0.55; }
+  92%           { opacity: 0; }
+  94%           { opacity: 0.3; }
+}
+
+/* ─────────────────────────────────────────
+   CLOUDS
+───────────────────────────────────────── */
+.cloud {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 50px;
+  filter: blur(12px);
+  animation: drift-cloud linear infinite;
+}
+
+@keyframes drift-cloud {
+  0%   { transform: translateX(-250px); opacity: 0; }
+  8%   { opacity: 1; }
+  92%  { opacity: 1; }
+  100% { transform: translateX(110vw); opacity: 0; }
+}
+
+/* ─────────────────────────────────────────
+   FOG
+───────────────────────────────────────── */
+.fog-layer {
+  position: absolute;
+  width: 220%;
+  left: -60%;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+  filter: blur(25px);
+  animation: fog-drift linear infinite alternate;
+}
+
+@keyframes fog-drift {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(15%); }
+}
+
+/* ─────────────────────────────────────────
+   APP LAYOUT
+───────────────────────────────────────── */
 .app {
   position: relative;
   z-index: 2;
@@ -68,9 +193,10 @@ body {
   font-weight: 700;
   margin-bottom: 30px;
   letter-spacing: 1px;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.4);
 }
 
-/* ── Search Box ── */
+/* Search Box */
 .search-box {
   display: flex;
   gap: 10px;
@@ -80,25 +206,19 @@ body {
 .search-box input {
   flex: 1;
   padding: 14px 18px;
-  border: none;
   border-radius: 14px;
   font-size: 1rem;
   font-family: 'Inter', sans-serif;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.12);
   color: #fff;
   outline: none;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   transition: border 0.3s;
 }
 
-.search-box input::placeholder {
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.search-box input:focus {
-  border-color: rgba(255, 255, 255, 0.4);
-}
+.search-box input::placeholder { color: rgba(255,255,255,0.5); }
+.search-box input:focus { border-color: rgba(255,255,255,0.5); }
 
 .search-box button {
   padding: 14px 22px;
@@ -118,10 +238,10 @@ body {
   transform: scale(1.04);
 }
 
-/* ── Weather Card ── */
+/* Weather Card */
 .card {
   background: var(--glass);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(24px);
   border: 1px solid var(--border);
   border-radius: 24px;
   padding: 36px 28px;
@@ -159,17 +279,16 @@ body {
 
 .description {
   font-size: 1.1rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255,255,255,0.75);
   text-transform: capitalize;
   margin-top: 6px;
   margin-bottom: 28px;
 }
 
-/* ── Details Row ── */
 .details {
   display: flex;
   justify-content: space-around;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255,255,255,0.1);
   padding-top: 22px;
 }
 
@@ -181,7 +300,7 @@ body {
 
 .label {
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255,255,255,0.5);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -191,7 +310,7 @@ body {
   font-weight: 600;
 }
 
-/* ── Error ── */
+/* Error */
 .error-msg {
   background: rgba(233, 69, 96, 0.2);
   border: 1px solid rgba(233, 69, 96, 0.4);

@@ -6,7 +6,7 @@
 const GEO_URL     = "https://geocoding-api.open-meteo.com/v1/search";
 const WEATHER_URL = "https://api.open-meteo.com/v1/forecast";
 
-// WMO Weather code → { emoji, label, bg (video category) }
+// WMO Weather code → { emoji, label, bg }
 const weatherInfo = {
   0:  { emoji: "☀️",  label: "Clear Sky",                  bg: "sunny" },
   1:  { emoji: "🌤️", label: "Mainly Clear",                bg: "sunny" },
@@ -34,35 +34,136 @@ const weatherInfo = {
   99: { emoji: "⛈️",  label: "Thunderstorm w/ Heavy Hail",  bg: "stormy" },
 };
 
-// Free video URLs (Mixkit CDN — no key needed)
-const bgVideos = {
-  sunny:  "https://cdn.mixkit.co/videos/preview/mixkit-sun-in-the-blue-sky-with-trees-2519-large.mp4",
-  cloudy: "https://cdn.mixkit.co/videos/preview/mixkit-clouds-and-blue-sky-2408-large.mp4",
-  rainy:  "https://cdn.mixkit.co/videos/preview/mixkit-rain-falling-on-the-water-of-a-lake-seen-up-close-18312-large.mp4",
-  snowy:  "https://cdn.mixkit.co/videos/preview/mixkit-snowflakes-falling-on-a-forest-33840-large.mp4",
-  stormy: "https://cdn.mixkit.co/videos/preview/mixkit-stormy-clouds-in-the-sky-1177-large.mp4",
-  foggy:  "https://cdn.mixkit.co/videos/preview/mixkit-going-through-a-heavy-fog-among-bushes-4244-large.mp4",
-};
-
 // DOM elements
 const cityInput = document.getElementById("city-input");
 const searchBtn = document.getElementById("search-btn");
 const card      = document.getElementById("weather-card");
 const errorMsg  = document.getElementById("error-msg");
-const bgVideo   = document.getElementById("bg-video");
-const bgSource  = document.getElementById("bg-source");
+const bgEffect  = document.getElementById("bg-effect");
 
-// Update background video based on weather type
-function updateBackground(type) {
-  const url = bgVideos[type] ?? bgVideos["sunny"];
-  if (bgSource.src === url) return; // already playing
+// ─── Animated Background Generator ───────────────────────────
+function setBackground(type) {
+  // Clear old particles + classes
+  bgEffect.innerHTML = "";
+  bgEffect.className = `bg-${type}`;
 
-  bgVideo.classList.remove("loaded");
-  bgSource.src = url;
-  bgVideo.load();
-  bgVideo.oncanplay = () => bgVideo.classList.add("loaded");
+  switch (type) {
+
+    case "sunny": {
+      // Glowing sun core
+      const core = document.createElement("div");
+      core.className = "sun-core";
+      bgEffect.appendChild(core);
+      // Rotating rays
+      for (let i = 0; i < 14; i++) {
+        const ray = document.createElement("div");
+        ray.className = "sun-ray";
+        const len = Math.random() * 180 + 120;
+        ray.style.cssText = `
+          height: ${len}px;
+          transform: rotate(${i * 26}deg);
+          animation-duration: ${10 + i * 1.5}s;
+          opacity: ${Math.random() * 0.4 + 0.2};
+        `;
+        bgEffect.appendChild(ray);
+      }
+      break;
+    }
+
+    case "rainy": {
+      for (let i = 0; i < 130; i++) {
+        const drop = document.createElement("div");
+        drop.className = "raindrop";
+        drop.style.cssText = `
+          left: ${Math.random() * 100}%;
+          height: ${Math.random() * 18 + 10}px;
+          animation-duration: ${Math.random() * 0.4 + 0.35}s;
+          animation-delay: -${Math.random() * 2}s;
+          opacity: ${Math.random() * 0.5 + 0.3};
+        `;
+        bgEffect.appendChild(drop);
+      }
+      break;
+    }
+
+    case "snowy": {
+      const flakes = ["❄", "❅", "❆", "✦", "•"];
+      for (let i = 0; i < 70; i++) {
+        const flake = document.createElement("div");
+        flake.className = "snowflake";
+        flake.textContent = flakes[Math.floor(Math.random() * flakes.length)];
+        flake.style.cssText = `
+          left: ${Math.random() * 100}%;
+          font-size: ${Math.random() * 14 + 8}px;
+          animation-duration: ${Math.random() * 5 + 4}s;
+          animation-delay: -${Math.random() * 6}s;
+          opacity: ${Math.random() * 0.5 + 0.4};
+        `;
+        bgEffect.appendChild(flake);
+      }
+      break;
+    }
+
+    case "stormy": {
+      // Heavy rain
+      for (let i = 0; i < 170; i++) {
+        const drop = document.createElement("div");
+        drop.className = "raindrop";
+        drop.style.cssText = `
+          left: ${Math.random() * 100}%;
+          height: ${Math.random() * 25 + 15}px;
+          width: 1px;
+          animation-duration: ${Math.random() * 0.3 + 0.25}s;
+          animation-delay: -${Math.random() * 2}s;
+          opacity: ${Math.random() * 0.6 + 0.3};
+        `;
+        bgEffect.appendChild(drop);
+      }
+      // Lightning flash
+      const flash = document.createElement("div");
+      flash.className = "lightning-flash";
+      flash.style.animationDuration = `${Math.random() * 2 + 3}s`;
+      flash.style.animationDelay    = `${Math.random() * 2}s`;
+      bgEffect.appendChild(flash);
+      break;
+    }
+
+    case "cloudy": {
+      for (let i = 0; i < 7; i++) {
+        const cloud = document.createElement("div");
+        cloud.className = "cloud";
+        cloud.style.cssText = `
+          top: ${Math.random() * 70}%;
+          width: ${Math.random() * 250 + 120}px;
+          height: ${Math.random() * 70 + 40}px;
+          animation-duration: ${Math.random() * 25 + 20}s;
+          animation-delay: -${Math.random() * 15}s;
+          opacity: ${Math.random() * 0.35 + 0.15};
+        `;
+        bgEffect.appendChild(cloud);
+      }
+      break;
+    }
+
+    case "foggy": {
+      for (let i = 0; i < 6; i++) {
+        const fog = document.createElement("div");
+        fog.className = "fog-layer";
+        fog.style.cssText = `
+          top: ${15 + i * 14}%;
+          height: ${Math.random() * 80 + 60}px;
+          animation-duration: ${12 + i * 4}s;
+          animation-delay: -${i * 3}s;
+          opacity: ${0.1 + i * 0.04};
+        `;
+        bgEffect.appendChild(fog);
+      }
+      break;
+    }
+  }
 }
 
+// ─── Fetch Weather ────────────────────────────────────────────
 async function getWeather(city) {
   city = city.trim();
   if (!city) return;
@@ -73,7 +174,7 @@ async function getWeather(city) {
   searchBtn.disabled = true;
 
   try {
-    // Step 1: Get coordinates from city name
+    // Step 1: Geocode
     const geoRes  = await fetch(`${GEO_URL}?name=${encodeURIComponent(city)}&count=1&language=en&format=json`);
     const geoData = await geoRes.json();
 
@@ -84,7 +185,7 @@ async function getWeather(city) {
 
     const { latitude, longitude, name, country } = geoData.results[0];
 
-    // Step 2: Get weather using coordinates
+    // Step 2: Fetch weather
     const params = new URLSearchParams({
       latitude,
       longitude,
@@ -108,7 +209,7 @@ async function getWeather(city) {
 
 function showWeather(city, country, current) {
   const code = current.weather_code;
-  const info = weatherInfo[code] ?? { emoji: "🌡️", label: "Unknown", bg: "sunny" };
+  const info = weatherInfo[code] ?? { emoji: "🌡️", label: "Unknown", bg: "cloudy" };
 
   document.getElementById("city-name").textContent    = `${city}, ${country}`;
   document.getElementById("weather-icon").textContent = info.emoji;
@@ -118,8 +219,8 @@ function showWeather(city, country, current) {
   document.getElementById("wind").textContent         = `${Math.round(current.wind_speed_10m)} km/h`;
   document.getElementById("feels-like").textContent   = `${Math.round(current.apparent_temperature)}°C`;
 
-  // 🎬 Change background video based on weather
-  updateBackground(info.bg);
+  // 🎨 Animate background based on weather
+  setBackground(info.bg);
 
   card.style.display = "block";
 }
