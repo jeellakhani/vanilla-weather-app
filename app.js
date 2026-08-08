@@ -1,6 +1,7 @@
 // Open-Meteo — Free, accurate, no API key needed
-// Step 1: Geocoding API to get lat/lon from city name
-// Step 2: Weather API to get current weather
+// Uses two-step approach:
+// Step 1: Geocoding API to convert city name → lat/lon
+// Step 2: Weather API to fetch live weather using coordinates
 
 const GEO_URL     = "https://geocoding-api.open-meteo.com/v1/search";
 const WEATHER_URL = "https://api.open-meteo.com/v1/forecast";
