@@ -107,3 +107,6 @@ searchBtn.addEventListener("click", () => getWeather(cityInput.value));
 cityInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") getWeather(cityInput.value);
 });
+
+// Auto-focus input on page load
+window.addEventListener("load", () => cityInput.focus());
