@@ -1,330 +1,511 @@
 // Open-Meteo — Free, accurate, no API key needed
 // Step 1: Geocoding API to convert city name → lat/lon
-// Step 2: Weather API to fetch live weather using coordinates
+// Step 2: Weather API to fetch live weather + daily data
 
 const GEO_URL     = "https://geocoding-api.open-meteo.com/v1/search";
 const WEATHER_URL = "https://api.open-meteo.com/v1/forecast";
 
 // WMO Weather code → { emoji, label, bg }
 const weatherInfo = {
-  0:  { emoji: "☀️",  label: "Clear Sky",                  bg: "sunny"  },
-  1:  { emoji: "🌤️", label: "Mainly Clear",                bg: "sunny"  },
-  2:  { emoji: "⛅",  label: "Partly Cloudy",               bg: "cloudy" },
-  3:  { emoji: "☁️",  label: "Overcast",                    bg: "cloudy" },
-  45: { emoji: "🌫️", label: "Foggy",                       bg: "foggy"  },
-  48: { emoji: "🌫️", label: "Icy Fog",                     bg: "foggy"  },
-  51: { emoji: "🌦️", label: "Light Drizzle",               bg: "rainy"  },
-  53: { emoji: "🌦️", label: "Drizzle",                     bg: "rainy"  },
-  55: { emoji: "🌧️", label: "Heavy Drizzle",               bg: "rainy"  },
-  61: { emoji: "🌧️", label: "Light Rain",                  bg: "rainy"  },
-  63: { emoji: "🌧️", label: "Rain",                        bg: "rainy"  },
-  65: { emoji: "🌧️", label: "Heavy Rain",                  bg: "rainy"  },
-  71: { emoji: "❄️",  label: "Light Snow",                  bg: "snowy"  },
-  73: { emoji: "❄️",  label: "Snow",                        bg: "snowy"  },
-  75: { emoji: "❄️",  label: "Heavy Snow",                  bg: "snowy"  },
-  77: { emoji: "❄️",  label: "Snow Grains",                 bg: "snowy"  },
-  80: { emoji: "🌦️", label: "Rain Showers",                bg: "rainy"  },
-  81: { emoji: "🌧️", label: "Heavy Showers",               bg: "rainy"  },
-  82: { emoji: "🌧️", label: "Violent Showers",             bg: "rainy"  },
-  85: { emoji: "❄️",  label: "Snow Showers",                bg: "snowy"  },
-  86: { emoji: "❄️",  label: "Heavy Snow Showers",          bg: "snowy"  },
-  95: { emoji: "⛈️",  label: "Thunderstorm",                bg: "stormy" },
-  96: { emoji: "⛈️",  label: "Thunderstorm w/ Hail",        bg: "stormy" },
-  99: { emoji: "⛈️",  label: "Thunderstorm w/ Heavy Hail",  bg: "stormy" },
+  0:  { emoji: "☀️",  label: "Clear Sky",                 bg: "sunny"  },
+  1:  { emoji: "🌤️", label: "Mainly Clear",               bg: "sunny"  },
+  2:  { emoji: "⛅",  label: "Partly Cloudy",              bg: "cloudy" },
+  3:  { emoji: "☁️",  label: "Overcast",                   bg: "cloudy" },
+  45: { emoji: "🌫️", label: "Foggy",                      bg: "foggy"  },
+  48: { emoji: "🌫️", label: "Icy Fog",                    bg: "foggy"  },
+  51: { emoji: "🌦️", label: "Light Drizzle",              bg: "rainy"  },
+  53: { emoji: "🌦️", label: "Drizzle",                    bg: "rainy"  },
+  55: { emoji: "🌧️", label: "Heavy Drizzle",              bg: "rainy"  },
+  61: { emoji: "🌧️", label: "Light Rain",                 bg: "rainy"  },
+  63: { emoji: "🌧️", label: "Rain",                       bg: "rainy"  },
+  65: { emoji: "🌧️", label: "Heavy Rain",                 bg: "rainy"  },
+  71: { emoji: "❄️",  label: "Light Snow",                 bg: "snowy"  },
+  73: { emoji: "❄️",  label: "Snow",                       bg: "snowy"  },
+  75: { emoji: "❄️",  label: "Heavy Snow",                 bg: "snowy"  },
+  77: { emoji: "❄️",  label: "Snow Grains",                bg: "snowy"  },
+  80: { emoji: "🌦️", label: "Rain Showers",               bg: "rainy"  },
+  81: { emoji: "🌧️", label: "Heavy Showers",              bg: "rainy"  },
+  82: { emoji: "🌧️", label: "Violent Showers",            bg: "rainy"  },
+  85: { emoji: "❄️",  label: "Snow Showers",               bg: "snowy"  },
+  86: { emoji: "❄️",  label: "Heavy Snow Showers",         bg: "snowy"  },
+  95: { emoji: "⛈️",  label: "Thunderstorm",               bg: "stormy" },
+  96: { emoji: "⛈️",  label: "Thunderstorm w/ Hail",       bg: "stormy" },
+  99: { emoji: "⛈️",  label: "Thunderstorm w/ Heavy Hail", bg: "stormy" },
 };
 
-// ════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
 //  CANVAS WEATHER ENGINE
-// ════════════════════════════════════════════════════════
-const canvas  = document.getElementById("bg-canvas");
-const ctx     = canvas.getContext("2d");
-let particles = [];
-let animFrame = null;
-let currentBg = "default";
-let lightningTimer = 0;
-let lightningAlpha = 0;
+// ══════════════════════════════════════════════════════
+const canvas = document.getElementById("bg-canvas");
+const ctx    = canvas.getContext("2d");
 
-// Resize canvas to fill screen
+let particles    = [];
+let currentBg    = "default";
+let isDay        = true;
+
+// Lightning
+let ltTimer  = 0;
+let ltAlpha  = 0;
+let ltBolts  = [];
+
+// Sun
+let sunAngle = 0;
+
+// Stars
+let stars = [];
+
 function resizeCanvas() {
   canvas.width  = window.innerWidth;
   canvas.height = window.innerHeight;
+  if (stars.length === 0 || currentBg === "night") buildStars();
 }
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
 
-// ── Background gradients ───────────────────────────────
+// ── Gradients ─────────────────────────────────────────
 const gradients = {
   default: ["#1a1a2e", "#16213e", "#0f3460"],
-  sunny:   ["#0b4f8c", "#1a7fc1", "#f9c846"],
-  cloudy:  ["#3b4a5a", "#5f7080", "#8fa3b1"],
-  rainy:   ["#0d1b2a", "#1b3a5c", "#1e3a5f"],
-  snowy:   ["#6ea8d4", "#a8cde0", "#ddeef7"],
-  stormy:  ["#050505", "#0f0f1a", "#1a1a2e"],
-  foggy:   ["#5a6474", "#8a9aaa", "#bccad4"],
+  sunny:   ["#1b6fbe", "#2e9cca", "#f6d94e"],
+  night:   ["#05050f", "#0d1025", "#1a1a3e"],
+  cloudy:  ["#2e3d4f", "#4a6075", "#708090"],
+  rainy:   ["#0a1628", "#152c4a", "#1d3b5e"],
+  snowy:   ["#6dadd4", "#9ac8e4", "#d6edf8"],
+  stormy:  ["#030308", "#0d0d1a", "#151525"],
+  foggy:   ["#485566", "#7a8fa0", "#b0c0cc"],
 };
 
-function drawBackground(type) {
-  const cols = gradients[type] || gradients.default;
-  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-  grad.addColorStop(0,   cols[0]);
-  grad.addColorStop(0.5, cols[1]);
-  grad.addColorStop(1,   cols[2]);
-  ctx.fillStyle = grad;
+function drawGradientBg(type) {
+  const c = gradients[type] || gradients.default;
+  const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  g.addColorStop(0,   c[0]);
+  g.addColorStop(0.5, c[1]);
+  g.addColorStop(1,   c[2]);
+  ctx.fillStyle = g;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
-// ── Particle factories ─────────────────────────────────
-function makeRaindrop(heavy = false) {
+// ── Stars (night / clear night) ───────────────────────
+function buildStars() {
+  stars = [];
+  for (let i = 0; i < 180; i++) {
+    stars.push({
+      x:      Math.random() * canvas.width,
+      y:      Math.random() * canvas.height * 0.75,
+      r:      Math.random() * 1.4 + 0.3,
+      alpha:  Math.random(),
+      speed:  Math.random() * 0.015 + 0.005,
+      dir:    Math.random() > 0.5 ? 1 : -1,
+    });
+  }
+}
+
+function drawStars() {
+  stars.forEach(s => {
+    s.alpha += s.speed * s.dir;
+    if (s.alpha >= 1 || s.alpha <= 0.05) s.dir *= -1;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,255,255,${s.alpha})`;
+    ctx.fill();
+  });
+}
+
+// ── Moon ──────────────────────────────────────────────
+function drawMoon() {
+  const mx = canvas.width * 0.78;
+  const my = canvas.height * 0.14;
+  // Glow
+  const glow = ctx.createRadialGradient(mx, my, 5, mx, my, 80);
+  glow.addColorStop(0,   "rgba(200,220,255,0.25)");
+  glow.addColorStop(1,   "rgba(200,220,255,0)");
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(mx, my, 80, 0, Math.PI * 2);
+  ctx.fill();
+  // Moon body
+  ctx.fillStyle = "#ddeeff";
+  ctx.beginPath();
+  ctx.arc(mx, my, 32, 0, Math.PI * 2);
+  ctx.fill();
+  // Crescent shadow
+  ctx.fillStyle = gradients.night[0];
+  ctx.beginPath();
+  ctx.arc(mx + 10, my - 5, 28, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// ── Sun ───────────────────────────────────────────────
+function drawSun() {
+  const sx = canvas.width  * 0.78;
+  const sy = canvas.height * 0.14;
+  sunAngle += 0.004;
+
+  // Outer aura
+  const aura = ctx.createRadialGradient(sx, sy, 30, sx, sy, 200);
+  aura.addColorStop(0,   "rgba(255,230,80,0.3)");
+  aura.addColorStop(0.5, "rgba(255,200,40,0.1)");
+  aura.addColorStop(1,   "rgba(255,170,0,0)");
+  ctx.fillStyle = aura;
+  ctx.beginPath();
+  ctx.arc(sx, sy, 200, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Rotating rays
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.rotate(sunAngle);
+  for (let i = 0; i < 16; i++) {
+    const a = (i / 16) * Math.PI * 2;
+    const inner = 62, outer = 62 + (i % 2 === 0 ? 28 : 18);
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a) * inner, Math.sin(a) * inner);
+    ctx.lineTo(Math.cos(a) * outer, Math.sin(a) * outer);
+    ctx.strokeStyle = `rgba(255,220,60,${i % 2 === 0 ? 0.55 : 0.3})`;
+    ctx.lineWidth   = i % 2 === 0 ? 3.5 : 2;
+    ctx.lineCap     = "round";
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Core gradient
+  const core = ctx.createRadialGradient(sx - 8, sy - 8, 0, sx, sy, 52);
+  core.addColorStop(0,   "rgba(255,255,200,1)");
+  core.addColorStop(0.5, "rgba(255,225,60,1)");
+  core.addColorStop(1,   "rgba(255,170,0,0.85)");
+  ctx.fillStyle = core;
+  ctx.beginPath();
+  ctx.arc(sx, sy, 52, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Lens flare
+  const flares = [
+    { dx: -90, r: 8,  a: 0.15 },
+    { dx: -150, r: 14, a: 0.08 },
+    { dx: -220, r: 5,  a: 0.12 },
+  ];
+  flares.forEach(f => {
+    ctx.beginPath();
+    ctx.arc(sx + f.dx, sy, f.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,240,120,${f.a})`;
+    ctx.fill();
+  });
+}
+
+// ── Rain drops ────────────────────────────────────────
+function makeRaindrop(heavy) {
   return {
-    x:     Math.random() * canvas.width,
+    x:     Math.random() * (canvas.width + 300) - 150,
     y:     Math.random() * -canvas.height,
-    len:   heavy ? Math.random() * 25 + 15 : Math.random() * 15 + 8,
-    speed: heavy ? Math.random() * 18 + 14 : Math.random() * 10 + 8,
-    alpha: Math.random() * 0.4 + 0.3,
+    len:   heavy ? Math.random() * 28 + 14 : Math.random() * 14 + 7,
+    speed: heavy ? Math.random() * 20 + 14 : Math.random() * 12 + 7,
+    alpha: Math.random() * 0.45 + 0.25,
+    wind:  heavy ? 0.28 : 0.15,
     type:  "rain",
   };
 }
 
+function drawRaindrop(p) {
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y);
+  ctx.lineTo(p.x - p.len * p.wind, p.y + p.len);
+  ctx.strokeStyle = `rgba(180,215,255,${p.alpha})`;
+  ctx.lineWidth   = 1.2;
+  ctx.stroke();
+}
+
+function updateRaindrop(p) {
+  p.y += p.speed;
+  p.x -= p.speed * p.wind;
+  if (p.y > canvas.height + 20 || p.x < -100) {
+    p.y = Math.random() * -200;
+    p.x = Math.random() * (canvas.width + 300) - 150;
+  }
+}
+
+// ── Snow ──────────────────────────────────────────────
 function makeSnowflake() {
   return {
-    x:      Math.random() * canvas.width,
-    y:      Math.random() * -canvas.height,
-    r:      Math.random() * 4 + 2,
-    speed:  Math.random() * 1.5 + 0.5,
-    drift:  (Math.random() - 0.5) * 0.6,
-    alpha:  Math.random() * 0.5 + 0.5,
-    angle:  Math.random() * Math.PI * 2,
-    type:   "snow",
+    x:     Math.random() * canvas.width,
+    y:     Math.random() * -canvas.height,
+    r:     Math.random() * 4.5 + 1.5,
+    speed: Math.random() * 1.4 + 0.4,
+    drift: (Math.random() - 0.5) * 0.7,
+    angle: Math.random() * Math.PI * 2,
+    spin:  (Math.random() - 0.5) * 0.025,
+    alpha: Math.random() * 0.55 + 0.45,
+    type:  "snow",
   };
 }
 
-function makeCloud() {
+function drawSnowflake(p) {
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.angle);
+  ctx.globalAlpha = p.alpha;
+  // Arms
+  for (let i = 0; i < 6; i++) {
+    ctx.save();
+    ctx.rotate((i / 6) * Math.PI * 2);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, -p.r * 2.2);
+    // Branch
+    ctx.moveTo(0, -p.r * 1.1);
+    ctx.lineTo(-p.r * 0.5, -p.r * 1.6);
+    ctx.moveTo(0, -p.r * 1.1);
+    ctx.lineTo(p.r * 0.5, -p.r * 1.6);
+    ctx.strokeStyle = "rgba(220,240,255,1)";
+    ctx.lineWidth   = 0.9;
+    ctx.stroke();
+    ctx.restore();
+  }
+  // Center dot
+  ctx.beginPath();
+  ctx.arc(0, 0, p.r * 0.45, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255,255,255,0.9)";
+  ctx.fill();
+  ctx.restore();
+}
+
+function updateSnowflake(p) {
+  p.y     += p.speed;
+  p.x     += p.drift + Math.sin(p.y * 0.018) * 0.4;
+  p.angle += p.spin;
+  if (p.y > canvas.height + 15 || p.x < -30 || p.x > canvas.width + 30) {
+    p.y = Math.random() * -120;
+    p.x = Math.random() * canvas.width;
+  }
+}
+
+// ── Clouds ────────────────────────────────────────────
+function makeCloud(dark) {
   return {
-    x:     -350,
-    y:     Math.random() * canvas.height * 0.6,
-    w:     Math.random() * 220 + 140,
-    h:     Math.random() * 70 + 40,
-    speed: Math.random() * 0.4 + 0.15,
-    alpha: Math.random() * 0.25 + 0.12,
+    x:     -400,
+    y:     Math.random() * canvas.height * 0.55,
+    w:     Math.random() * 260 + 140,
+    h:     Math.random() * 80 + 45,
+    speed: Math.random() * 0.45 + 0.1,
+    alpha: dark ? Math.random() * 0.2 + 0.12 : Math.random() * 0.28 + 0.1,
+    dark,
     type:  "cloud",
   };
 }
 
-function makeFogLayer(index) {
+function drawCloud(p) {
+  ctx.save();
+  ctx.globalAlpha = p.alpha;
+  const col = p.dark ? "rgba(60,70,90,1)" : "rgba(255,255,255,1)";
+  const blur = 14;
+  ctx.filter = `blur(${blur}px)`;
+  // Main body
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y, p.w / 2, p.h / 2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Puffs
+  ctx.beginPath();
+  ctx.ellipse(p.x - p.w * 0.22, p.y - p.h * 0.22, p.w * 0.32, p.h * 0.55, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(p.x + p.w * 0.22, p.y - p.h * 0.18, p.w * 0.28, p.h * 0.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function updateCloud(p) {
+  p.x += p.speed;
+  if (p.x > canvas.width + 450) {
+    p.x = -400;
+    p.y = Math.random() * canvas.height * 0.55;
+  }
+}
+
+// ── Fog ───────────────────────────────────────────────
+function makeFog(i) {
   return {
-    x:     -canvas.width * 0.3,
-    y:     canvas.height * (0.2 + index * 0.15),
-    w:     canvas.width * 2,
-    h:     Math.random() * 120 + 80,
-    speed: Math.random() * 0.3 + 0.1,
-    alpha: 0.06 + index * 0.03,
+    x:     -canvas.width * 0.5,
+    y:     canvas.height * (0.18 + i * 0.14),
+    w:     canvas.width * 2.4,
+    h:     Math.random() * 110 + 70,
+    speed: Math.random() * 0.35 + 0.1,
+    alpha: 0.05 + i * 0.025,
     type:  "fog",
   };
 }
 
-// ── Initialize particles by weather type ───────────────
-function initParticles(type) {
+function drawFog(p) {
+  const g = ctx.createLinearGradient(p.x, p.y, p.x + p.w, p.y);
+  g.addColorStop(0,   "rgba(255,255,255,0)");
+  g.addColorStop(0.25, `rgba(255,255,255,${p.alpha})`);
+  g.addColorStop(0.75, `rgba(255,255,255,${p.alpha})`);
+  g.addColorStop(1,   "rgba(255,255,255,0)");
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.ellipse(p.x + p.w / 2, p.y, p.w / 2, p.h / 2, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function updateFog(p) {
+  p.x += p.speed;
+  if (p.x > canvas.width * 0.6) p.x = -canvas.width * 0.8;
+}
+
+// ── Lightning bolt (zigzag) ────────────────────────────
+function generateBolt() {
+  const x = canvas.width * (0.3 + Math.random() * 0.4);
+  const points = [{ x, y: canvas.height * 0.1 }];
+  let cx = x, cy = canvas.height * 0.1;
+  const steps = 10;
+  for (let i = 1; i <= steps; i++) {
+    cx += (Math.random() - 0.5) * 80;
+    cy  = canvas.height * 0.1 + (canvas.height * 0.65) * (i / steps);
+    points.push({ x: cx, y: cy });
+  }
+  return { points, alpha: 1, branches: [] };
+}
+
+function drawBolt(bolt) {
+  if (bolt.alpha <= 0) return;
+  ctx.save();
+  ctx.shadowBlur  = 24;
+  ctx.shadowColor = "rgba(180,210,255,0.9)";
+  ctx.strokeStyle = `rgba(230,240,255,${bolt.alpha})`;
+  ctx.lineWidth   = 2.5;
+  ctx.lineCap     = "round";
+  ctx.lineJoin    = "round";
+  ctx.beginPath();
+  bolt.points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.stroke();
+  // Thin inner glow
+  ctx.strokeStyle = `rgba(255,255,255,${bolt.alpha * 0.7})`;
+  ctx.lineWidth   = 1;
+  ctx.stroke();
+  ctx.restore();
+  bolt.alpha -= 0.06;
+}
+
+// ── Init particles ─────────────────────────────────────
+function initParticles(type, night) {
   particles = [];
-  currentBg = type;
-  lightningTimer = 0;
-  lightningAlpha = 0;
+  currentBg = night ? "night" : type;
+  isDay     = !night;
+  ltTimer   = 0;
+  ltAlpha   = 0;
+  ltBolts   = [];
 
-  if (type === "rainy") {
-    for (let i = 0; i < 200; i++) particles.push(makeRaindrop(false));
+  if (night && type !== "stormy") {
+    buildStars();
+    return;
   }
-  else if (type === "stormy") {
-    for (let i = 0; i < 280; i++) particles.push(makeRaindrop(true));
-  }
-  else if (type === "snowy") {
-    for (let i = 0; i < 120; i++) particles.push(makeSnowflake());
-  }
-  else if (type === "cloudy") {
-    for (let i = 0; i < 5; i++) {
-      const c = makeCloud();
-      c.x = Math.random() * canvas.width; // spread on init
-      particles.push(c);
-    }
-  }
-  else if (type === "foggy") {
-    for (let i = 0; i < 6; i++) particles.push(makeFogLayer(i));
+
+  switch (type) {
+    case "rainy":
+      for (let i = 0; i < 220; i++) particles.push(makeRaindrop(false));
+      break;
+    case "stormy":
+      for (let i = 0; i < 300; i++) particles.push(makeRaindrop(true));
+      // Heavy dark clouds
+      for (let i = 0; i < 4; i++) {
+        const c = makeCloud(true);
+        c.x = Math.random() * canvas.width;
+        particles.push(c);
+      }
+      break;
+    case "snowy":
+      for (let i = 0; i < 140; i++) particles.push(makeSnowflake());
+      break;
+    case "cloudy":
+      for (let i = 0; i < 6; i++) {
+        const c = makeCloud(false);
+        c.x = Math.random() * canvas.width;
+        particles.push(c);
+      }
+      break;
+    case "foggy":
+      for (let i = 0; i < 7; i++) particles.push(makeFog(i));
+      break;
+    case "sunny":
+      buildStars(); // keep array fresh, won't be shown
+      break;
   }
 }
 
-// ── Draw particles ─────────────────────────────────────
-function drawParticle(p) {
-  ctx.save();
-
-  if (p.type === "rain") {
-    ctx.beginPath();
-    ctx.moveTo(p.x, p.y);
-    ctx.lineTo(p.x - p.len * 0.18, p.y + p.len);
-    ctx.strokeStyle = `rgba(180, 215, 255, ${p.alpha})`;
-    ctx.lineWidth = 1.2;
-    ctx.stroke();
-  }
-  else if (p.type === "snow") {
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha})`;
-    ctx.fill();
-    // sparkle cross
-    ctx.strokeStyle = `rgba(255, 255, 255, ${p.alpha * 0.6})`;
-    ctx.lineWidth = 0.8;
-    for (let a = 0; a < 3; a++) {
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate(p.angle + (a * Math.PI) / 3);
-      ctx.beginPath();
-      ctx.moveTo(0, -p.r * 1.8);
-      ctx.lineTo(0,  p.r * 1.8);
-      ctx.stroke();
-      ctx.restore();
-    }
-  }
-  else if (p.type === "cloud") {
-    ctx.globalAlpha = p.alpha;
-    ctx.fillStyle   = "rgba(255, 255, 255, 1)";
-    ctx.beginPath();
-    ctx.ellipse(p.x, p.y, p.w / 2, p.h / 2, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(p.x - p.w * 0.2, p.y - p.h * 0.2, p.w * 0.35, p.h * 0.5, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(p.x + p.w * 0.2, p.y - p.h * 0.15, p.w * 0.3, p.h * 0.4, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  else if (p.type === "fog") {
-    const grad = ctx.createLinearGradient(p.x, p.y, p.x + p.w, p.y);
-    grad.addColorStop(0,   "rgba(255,255,255,0)");
-    grad.addColorStop(0.3, `rgba(255,255,255,${p.alpha})`);
-    grad.addColorStop(0.7, `rgba(255,255,255,${p.alpha})`);
-    grad.addColorStop(1,   "rgba(255,255,255,0)");
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.ellipse(p.x + p.w / 2, p.y, p.w / 2, p.h / 2, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  ctx.restore();
-}
-
-// ── Update particle positions ──────────────────────────
-function updateParticle(p) {
-  if (p.type === "rain") {
-    p.y += p.speed;
-    p.x -= p.speed * 0.18;
-    if (p.y > canvas.height + 30) {
-      p.y = Math.random() * -100;
-      p.x = Math.random() * canvas.width;
-    }
-  }
-  else if (p.type === "snow") {
-    p.y     += p.speed;
-    p.x     += p.drift + Math.sin(p.y * 0.02) * 0.5;
-    p.angle += 0.01;
-    if (p.y > canvas.height + 10 || p.x < -10 || p.x > canvas.width + 10) {
-      p.y = Math.random() * -80;
-      p.x = Math.random() * canvas.width;
-    }
-  }
-  else if (p.type === "cloud") {
-    p.x += p.speed;
-    if (p.x > canvas.width + 400) {
-      p.x = -350;
-      p.y = Math.random() * canvas.height * 0.6;
-    }
-  }
-  else if (p.type === "fog") {
-    p.x += p.speed;
-    if (p.x > canvas.width * 0.5) p.x = -canvas.width * 0.8;
-  }
-}
-
-// ── Draw sun (for sunny weather) ───────────────────────
-let sunAngle = 0;
-function drawSun() {
-  const cx = canvas.width  * 0.75;
-  const cy = canvas.height * 0.18;
-  sunAngle += 0.003;
-
-  // Outer glow
-  const glow = ctx.createRadialGradient(cx, cy, 20, cx, cy, 180);
-  glow.addColorStop(0,   "rgba(255, 230, 80, 0.35)");
-  glow.addColorStop(0.4, "rgba(255, 200, 40, 0.12)");
-  glow.addColorStop(1,   "rgba(255, 180, 0, 0)");
-  ctx.fillStyle = glow;
-  ctx.beginPath();
-  ctx.arc(cx, cy, 180, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Rays
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate(sunAngle);
-  for (let i = 0; i < 12; i++) {
-    const a = (i / 12) * Math.PI * 2;
-    ctx.beginPath();
-    ctx.moveTo(Math.cos(a) * 55, Math.sin(a) * 55);
-    ctx.lineTo(Math.cos(a) * 110, Math.sin(a) * 110);
-    ctx.strokeStyle = `rgba(255, 220, 50, ${0.15 + (i % 2) * 0.1})`;
-    ctx.lineWidth = 3;
-    ctx.lineCap = "round";
-    ctx.stroke();
-  }
-  ctx.restore();
-
-  // Core
-  const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, 50);
-  core.addColorStop(0,   "rgba(255, 255, 200, 1)");
-  core.addColorStop(0.5, "rgba(255, 220, 60,  1)");
-  core.addColorStop(1,   "rgba(255, 180, 0,   0.8)");
-  ctx.fillStyle = core;
-  ctx.beginPath();
-  ctx.arc(cx, cy, 50, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-// ── Lightning flash ────────────────────────────────────
-function drawLightning() {
-  lightningTimer--;
-  if (lightningTimer <= 0) {
-    lightningTimer = Math.random() * 200 + 120;
-    lightningAlpha = 0.7;
-  }
-  if (lightningAlpha > 0) {
-    ctx.fillStyle = `rgba(220, 230, 255, ${lightningAlpha})`;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    lightningAlpha *= 0.75;
-    if (lightningAlpha < 0.01) lightningAlpha = 0;
-  }
-}
-
-// ── Main animation loop ────────────────────────────────
+// ── Animate ───────────────────────────────────────────
 function animate() {
-  animFrame = requestAnimationFrame(animate);
-  drawBackground(currentBg);
+  requestAnimationFrame(animate);
+  drawGradientBg(currentBg);
 
-  if (currentBg === "sunny") {
+  if (currentBg === "night") {
+    drawStars();
+    drawMoon();
+  } else if (currentBg === "sunny") {
     drawSun();
   }
 
   particles.forEach(p => {
-    updateParticle(p);
-    drawParticle(p);
+    if (p.type === "rain")  { updateRaindrop(p);  drawRaindrop(p);  }
+    if (p.type === "snow")  { updateSnowflake(p); drawSnowflake(p); }
+    if (p.type === "cloud") { updateCloud(p);     drawCloud(p);     }
+    if (p.type === "fog")   { updateFog(p);       drawFog(p);       }
   });
 
+  // Lightning flashes + bolts
   if (currentBg === "stormy") {
-    drawLightning();
+    ltTimer--;
+    if (ltTimer <= 0) {
+      ltTimer = Math.random() * 180 + 90;
+      ltAlpha = 0.5;
+      ltBolts = [generateBolt()];
+      if (Math.random() > 0.5) ltBolts.push(generateBolt());
+    }
+    if (ltAlpha > 0) {
+      ctx.fillStyle = `rgba(210,225,255,${ltAlpha * 0.4})`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ltAlpha *= 0.72;
+    }
+    ltBolts.forEach(b => drawBolt(b));
+    ltBolts = ltBolts.filter(b => b.alpha > 0);
   }
 }
-
-// Start loop immediately (shows default dark bg)
 animate();
 
-// ════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
+//  HELPER FORMATTERS
+// ══════════════════════════════════════════════════════
+function windDirection(deg) {
+  const dirs = ["N","NE","E","SE","S","SW","W","NW"];
+  return dirs[Math.round(deg / 45) % 8];
+}
+
+function uvLabel(uv) {
+  if (uv <= 2)  return `${uv} · Low`;
+  if (uv <= 5)  return `${uv} · Moderate`;
+  if (uv <= 7)  return `${uv} · High`;
+  if (uv <= 10) return `${uv} · Very High`;
+  return `${uv} · Extreme`;
+}
+
+function formatVisibility(m) {
+  return m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${m} m`;
+}
+
+function formatTime(iso) {
+  return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatDateTime(timezone) {
+  return new Date().toLocaleString("en-US", {
+    timeZone: timezone,
+    weekday: "long",
+    hour:    "2-digit",
+    minute:  "2-digit",
+    hour12:  true,
+  });
+}
+
+// ══════════════════════════════════════════════════════
 //  WEATHER FETCH
-// ════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
 const cityInput = document.getElementById("city-input");
 const searchBtn = document.getElementById("search-btn");
 const card      = document.getElementById("weather-card");
@@ -334,37 +515,44 @@ async function getWeather(city) {
   city = city.trim();
   if (!city) return;
 
-  card.style.display  = "none";
+  card.style.display     = "none";
   errorMsg.style.display = "none";
   searchBtn.textContent  = "...";
   searchBtn.disabled     = true;
 
   try {
-    // Step 1: Geocode city
+    // Step 1: Geocode
     const geoRes  = await fetch(`${GEO_URL}?name=${encodeURIComponent(city)}&count=1&language=en&format=json`);
     const geoData = await geoRes.json();
-
-    if (!geoData.results || geoData.results.length === 0) {
+    if (!geoData.results?.length) {
       showError("❌ City not found. Please check the spelling and try again.");
       return;
     }
 
-    const { latitude, longitude, name, country } = geoData.results[0];
+    const { latitude, longitude, name, country, timezone } = geoData.results[0];
 
-    // Step 2: Fetch weather
+    // Step 2: Weather — current + daily
     const params = new URLSearchParams({
       latitude,
       longitude,
-      current: "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m",
+      current: [
+        "temperature_2m", "apparent_temperature", "relative_humidity_2m",
+        "dew_point_2m", "weather_code", "wind_speed_10m", "wind_direction_10m",
+        "surface_pressure", "visibility", "uv_index", "cloud_cover",
+        "precipitation", "is_day"
+      ].join(","),
+      daily:         "sunrise,sunset,precipitation_probability_max",
+      forecast_days: 1,
       wind_speed_unit: "kmh",
-      timezone: "auto",
+      timezone:      timezone || "auto",
     });
 
-    const weatherRes  = await fetch(`${WEATHER_URL}?${params}`);
-    const weatherData = await weatherRes.json();
-    showWeather(name, country, weatherData.current);
+    const res  = await fetch(`${WEATHER_URL}?${params}`);
+    const data = await res.json();
 
-  } catch (err) {
+    showWeather(name, country, timezone, data.current, data.daily);
+
+  } catch {
     showError("🌐 Network error. Please check your internet connection.");
   } finally {
     searchBtn.textContent = "Search";
@@ -372,20 +560,35 @@ async function getWeather(city) {
   }
 }
 
-function showWeather(city, country, current) {
-  const code = current.weather_code;
-  const info = weatherInfo[code] ?? { emoji: "🌡️", label: "Unknown", bg: "cloudy" };
+function showWeather(city, country, timezone, cur, daily) {
+  const code  = cur.weather_code;
+  const info  = weatherInfo[code] ?? { emoji: "🌡️", label: "Unknown", bg: "cloudy" };
+  const night = cur.is_day === 0;
 
-  document.getElementById("city-name").textContent    = `${city}, ${country}`;
+  // Header
+  document.getElementById("city-name").textContent = `${city}, ${country}`;
+  document.getElementById("date-time").textContent  = formatDateTime(timezone);
+
+  // Main
   document.getElementById("weather-icon").textContent = info.emoji;
-  document.getElementById("temperature").textContent  = `${Math.round(current.temperature_2m)}°C`;
+  document.getElementById("temperature").textContent  = `${Math.round(cur.temperature_2m)}°C`;
+  document.getElementById("feels-like").textContent   = `${Math.round(cur.apparent_temperature)}°C`;
   document.getElementById("description").textContent  = info.label;
-  document.getElementById("humidity").textContent     = `${current.relative_humidity_2m}%`;
-  document.getElementById("wind").textContent         = `${Math.round(current.wind_speed_10m)} km/h`;
-  document.getElementById("feels-like").textContent   = `${Math.round(current.apparent_temperature)}°C`;
 
-  // 🎨 Switch animated background
-  initParticles(info.bg);
+  // Details grid
+  document.getElementById("humidity").textContent    = `${cur.relative_humidity_2m}%`;
+  document.getElementById("wind").textContent        = `${Math.round(cur.wind_speed_10m)} km/h ${windDirection(cur.wind_direction_10m)}`;
+  document.getElementById("uv-index").textContent    = night ? "—" : uvLabel(Math.round(cur.uv_index ?? 0));
+  document.getElementById("visibility").textContent  = formatVisibility(cur.visibility ?? 10000);
+  document.getElementById("dew-point").textContent   = `${Math.round(cur.dew_point_2m)}°C`;
+  document.getElementById("pressure").textContent    = `${Math.round(cur.surface_pressure)} hPa`;
+  document.getElementById("sunrise").textContent     = formatTime(daily.sunrise[0]);
+  document.getElementById("sunset").textContent      = formatTime(daily.sunset[0]);
+  document.getElementById("rain-chance").textContent = `${daily.precipitation_probability_max[0] ?? 0}%`;
+  document.getElementById("cloud-cover").textContent = `${cur.cloud_cover}%`;
+
+  // 🎨 Switch background animation
+  initParticles(info.bg, night);
 
   card.style.display = "block";
 }
@@ -396,10 +599,8 @@ function showError(msg) {
 }
 
 // Events
-searchBtn.addEventListener("click",  () => getWeather(cityInput.value));
-cityInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") getWeather(cityInput.value);
-});
+searchBtn.addEventListener("click",   () => getWeather(cityInput.value));
+cityInput.addEventListener("keydown", (e) => { if (e.key === "Enter") getWeather(cityInput.value); });
 
 // Auto-focus on load
 window.addEventListener("load", () => cityInput.focus());

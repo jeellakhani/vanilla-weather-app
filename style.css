@@ -1,15 +1,12 @@
 :root {
-  --accent: #e94560;
+  --accent:      #e94560;
   --accent-dark: #c73652;
-  --glass: rgba(255, 255, 255, 0.1);
-  --border: rgba(255, 255, 255, 0.18);
+  --glass:       rgba(255, 255, 255, 0.08);
+  --glass-box:   rgba(255, 255, 255, 0.06);
+  --border:      rgba(255, 255, 255, 0.14);
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
   font-family: 'Inter', sans-serif;
@@ -21,7 +18,7 @@ body {
   background: #1a1a2e;
 }
 
-/* ── Canvas Background ── */
+/* ── Canvas ── */
 #bg-canvas {
   position: fixed;
   inset: 0;
@@ -30,31 +27,33 @@ body {
   z-index: 0;
 }
 
-/* ── Overlay ── */
 .overlay {
   position: fixed;
   inset: 0;
+  background: rgba(0, 0, 0, 0.32);
   z-index: 1;
   pointer-events: none;
-  transition: background 1.5s ease;
-  background: rgba(0, 0, 0, 0.35);
 }
 
 /* ── App ── */
 .app {
   position: relative;
   z-index: 2;
-  text-align: center;
   width: 100%;
-  max-width: 420px;
-  padding: 20px;
+  max-width: 480px;
+  padding: 16px;
+  max-height: 100vh;
+  overflow-y: auto;
+  scrollbar-width: none;
 }
+.app::-webkit-scrollbar { display: none; }
 
 .title {
   color: #fff;
-  font-size: 2rem;
+  font-size: 1.8rem;
   font-weight: 700;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
+  text-align: center;
   letter-spacing: 1px;
   text-shadow: 0 2px 12px rgba(0,0,0,0.5);
 }
@@ -63,51 +62,49 @@ body {
 .search-box {
   display: flex;
   gap: 10px;
-  margin-bottom: 24px;
+  margin-bottom: 18px;
 }
 
 .search-box input {
   flex: 1;
-  padding: 14px 18px;
+  padding: 13px 16px;
   border-radius: 14px;
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-family: 'Inter', sans-serif;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255,255,255,0.1);
   color: #fff;
   outline: none;
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255,255,255,0.18);
   transition: border 0.3s;
 }
-
-.search-box input::placeholder { color: rgba(255,255,255,0.5); }
+.search-box input::placeholder { color: rgba(255,255,255,0.45); }
 .search-box input:focus { border-color: rgba(255,255,255,0.5); }
 
 .search-box button {
-  padding: 14px 22px;
+  padding: 13px 20px;
   background: var(--accent);
   color: #fff;
   border: none;
   border-radius: 14px;
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
   font-family: 'Inter', sans-serif;
   cursor: pointer;
   transition: background 0.3s, transform 0.15s;
+  white-space: nowrap;
 }
-
-.search-box button:hover {
-  background: var(--accent-dark);
-  transform: scale(1.04);
-}
+.search-box button:hover { background: var(--accent-dark); transform: scale(1.04); }
+.search-box button:disabled { opacity: 0.6; transform: none; cursor: default; }
 
 /* ── Card ── */
 .card {
   background: var(--glass);
-  backdrop-filter: blur(24px);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
   border: 1px solid var(--border);
   border-radius: 24px;
-  padding: 36px 28px;
+  padding: 24px 22px;
   color: #fff;
   animation: fadeIn 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -117,68 +114,109 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* Card Header */
+.card-header {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
 .city-name {
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 700;
-  margin-bottom: 8px;
+  line-height: 1.2;
+}
+
+.date-time {
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.55);
+  margin-top: 4px;
+  font-weight: 400;
+}
+
+/* Main weather */
+.main-weather {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 10px 0 8px;
 }
 
 .weather-icon {
-  font-size: 5rem;
-  margin: 12px 0;
-  animation: pulse 2s ease-in-out infinite;
+  font-size: 4.5rem;
+  animation: pulse 2.5s ease-in-out infinite;
+  line-height: 1;
 }
 
 @keyframes pulse {
   0%, 100% { transform: scale(1); }
-  50%       { transform: scale(1.08); }
+  50%       { transform: scale(1.1); }
 }
+
+.temp-block { text-align: left; }
 
 .temperature {
-  font-size: 3.5rem;
+  font-size: 3.8rem;
   font-weight: 700;
-  color: #f4c842;
+  color: #f9d54a;
+  line-height: 1;
 }
+
+.feels-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+}
+.feels-label { font-size: 0.75rem; color: rgba(255,255,255,0.5); }
+.feels-value { font-size: 0.95rem; font-weight: 600; }
 
 .description {
-  font-size: 1.1rem;
-  color: rgba(255,255,255,0.75);
+  text-align: center;
+  font-size: 1rem;
+  color: rgba(255,255,255,0.7);
   text-transform: capitalize;
-  margin-top: 6px;
-  margin-bottom: 28px;
+  font-weight: 500;
+  margin-bottom: 18px;
 }
 
-.details {
-  display: flex;
-  justify-content: space-around;
-  border-top: 1px solid rgba(255,255,255,0.1);
-  padding-top: 22px;
+.divider {
+  height: 1px;
+  background: rgba(255,255,255,0.1);
+  margin-bottom: 16px;
 }
 
-.detail-item {
+/* ── Details Grid ── */
+.details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.detail-box {
+  background: var(--glass-box);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 3px;
+  transition: background 0.2s;
 }
+.detail-box:hover { background: rgba(255,255,255,0.1); }
 
-.label {
-  font-size: 0.75rem;
-  color: rgba(255,255,255,0.5);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.value {
-  font-size: 1rem;
-  font-weight: 600;
-}
+.detail-icon  { font-size: 1.15rem; }
+.detail-label { font-size: 0.7rem; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+.detail-value { font-size: 0.95rem; font-weight: 600; color: #fff; margin-top: 1px; }
 
 /* ── Error ── */
 .error-msg {
-  background: rgba(233, 69, 96, 0.2);
-  border: 1px solid rgba(233, 69, 96, 0.4);
+  background: rgba(233,69,96,0.18);
+  border: 1px solid rgba(233,69,96,0.4);
   color: #ff8099;
-  padding: 16px;
+  padding: 14px 16px;
   border-radius: 14px;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+  text-align: center;
+  margin-top: 4px;
 }

@@ -6,13 +6,12 @@
   <title>Weather App — Live Weather Updates</title>
   <meta name="description" content="Check live weather for any city. Built with vanilla JavaScript using Open-Meteo API." />
   <link rel="stylesheet" href="style.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 </head>
 <body>
 
-  <!-- Full-screen canvas for weather animation -->
   <canvas id="bg-canvas"></canvas>
-  <div class="overlay" id="overlay"></div>
+  <div class="overlay"></div>
 
   <div class="app">
     <h1 class="title">🌤 Weather App</h1>
@@ -22,25 +21,95 @@
       <button id="search-btn">Search</button>
     </div>
 
+    <!-- Weather Card -->
     <div class="card" id="weather-card" style="display:none;">
-      <div class="city-name" id="city-name"></div>
-      <div class="weather-icon" id="weather-icon"></div>
-      <div class="temperature" id="temperature"></div>
+
+      <!-- Header -->
+      <div class="card-header">
+        <div class="city-name" id="city-name"></div>
+        <div class="date-time" id="date-time"></div>
+      </div>
+
+      <!-- Main weather block -->
+      <div class="main-weather">
+        <div class="weather-icon" id="weather-icon"></div>
+        <div class="temp-block">
+          <div class="temperature" id="temperature"></div>
+          <div class="feels-row">
+            <span class="feels-label">Feels like</span>
+            <span class="feels-value" id="feels-like"></span>
+          </div>
+        </div>
+      </div>
+
       <div class="description" id="description"></div>
 
-      <div class="details">
-        <div class="detail-item">
-          <span class="label">Humidity</span>
-          <span class="value" id="humidity"></span>
+      <!-- Divider -->
+      <div class="divider"></div>
+
+      <!-- Details Grid (Google-style) -->
+      <div class="details-grid">
+
+        <div class="detail-box">
+          <div class="detail-icon">💧</div>
+          <div class="detail-label">Humidity</div>
+          <div class="detail-value" id="humidity"></div>
         </div>
-        <div class="detail-item">
-          <span class="label">Wind</span>
-          <span class="value" id="wind"></span>
+
+        <div class="detail-box">
+          <div class="detail-icon">💨</div>
+          <div class="detail-label">Wind</div>
+          <div class="detail-value" id="wind"></div>
         </div>
-        <div class="detail-item">
-          <span class="label">Feels Like</span>
-          <span class="value" id="feels-like"></span>
+
+        <div class="detail-box">
+          <div class="detail-icon">🌞</div>
+          <div class="detail-label">UV Index</div>
+          <div class="detail-value" id="uv-index"></div>
         </div>
+
+        <div class="detail-box">
+          <div class="detail-icon">👁️</div>
+          <div class="detail-label">Visibility</div>
+          <div class="detail-value" id="visibility"></div>
+        </div>
+
+        <div class="detail-box">
+          <div class="detail-icon">🌡️</div>
+          <div class="detail-label">Dew Point</div>
+          <div class="detail-value" id="dew-point"></div>
+        </div>
+
+        <div class="detail-box">
+          <div class="detail-icon">📊</div>
+          <div class="detail-label">Pressure</div>
+          <div class="detail-value" id="pressure"></div>
+        </div>
+
+        <div class="detail-box">
+          <div class="detail-icon">🌅</div>
+          <div class="detail-label">Sunrise</div>
+          <div class="detail-value" id="sunrise"></div>
+        </div>
+
+        <div class="detail-box">
+          <div class="detail-icon">🌇</div>
+          <div class="detail-label">Sunset</div>
+          <div class="detail-value" id="sunset"></div>
+        </div>
+
+        <div class="detail-box">
+          <div class="detail-icon">🌧️</div>
+          <div class="detail-label">Rain Chance</div>
+          <div class="detail-value" id="rain-chance"></div>
+        </div>
+
+        <div class="detail-box">
+          <div class="detail-icon">☁️</div>
+          <div class="detail-label">Cloud Cover</div>
+          <div class="detail-value" id="cloud-cover"></div>
+        </div>
+
       </div>
     </div>
 
