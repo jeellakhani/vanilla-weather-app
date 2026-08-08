@@ -10,14 +10,16 @@
 </head>
 <body>
 
+  <!-- Animated canvas background (rain, snow, sun, storms, etc.) -->
   <canvas id="bg-canvas"></canvas>
+  <!-- Dark overlay keeps UI text readable over the canvas -->
   <div class="overlay"></div>
 
   <div class="app">
     <h1 class="title">🌤 Weather App</h1>
 
     <div class="search-box">
-      <input type="text" id="city-input" placeholder="Search city e.g. Mumbai, London..." />
+      <input type="text" id="city-input" placeholder="Enter city name..." />
       <button id="search-btn">Search</button>
     </div>
 
@@ -113,8 +115,9 @@
       </div>
     </div>
 
+    <!-- Error banner: shown when city is not found or network fails -->
     <div class="error-msg" id="error-msg" style="display:none;"></div>
-  </div>
+  </div><!-- /.app -->
 
   <script src="app.js"></script>
 </body>
