@@ -1,9 +1,23 @@
+/* ══════════════════════════════════════════════
+   style.css — Weather App
+   Sections:
+     1. Variables & Reset
+     2. Canvas & Overlay
+     3. App Layout & Title
+     4. Search Box
+     5. Weather Card
+     6. Details Grid
+     7. Error Message
+   ══════════════════════════════════════════════ */
+
+/* 1. CSS Variables & Reset
+   ────────────────────────────────────────────── */
 :root {
-  --accent:      #e94560;
-  --accent-dark: #c73652;
-  --glass:       rgba(255, 255, 255, 0.08);
-  --glass-box:   rgba(255, 255, 255, 0.06);
-  --border:      rgba(255, 255, 255, 0.14);
+  --accent:      #e94560;                      /* Primary button/highlight color */
+  --accent-dark: #c73652;                      /* Hover state for accent */
+  --glass:       rgba(255, 255, 255, 0.08);    /* Main card glass fill */
+  --glass-box:   rgba(255, 255, 255, 0.06);    /* Detail box fill */
+  --border:      rgba(255, 255, 255, 0.14);    /* Glass border */
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -18,6 +32,9 @@ body {
   background: #1a1a2e;
 }
 
+/* 2. Canvas & Overlay
+   ────────────────────────────────────────────── */
+/* Full-screen canvas sits behind everything (z-index 0) */
 /* ── Canvas ── */
 #bg-canvas {
   position: fixed;
@@ -35,6 +52,8 @@ body {
   pointer-events: none;
 }
 
+/* 3. App Layout & Title
+   ────────────────────────────────────────────── */
 /* ── App ── */
 .app {
   position: relative;
@@ -58,6 +77,8 @@ body {
   text-shadow: 0 2px 12px rgba(0,0,0,0.5);
 }
 
+/* 4. Search Box
+   ────────────────────────────────────────────── */
 /* ── Search ── */
 .search-box {
   display: flex;
@@ -97,6 +118,8 @@ body {
 .search-box button:hover { background: var(--accent-dark); transform: scale(1.04); }
 .search-box button:disabled { opacity: 0.6; transform: none; cursor: default; }
 
+/* 5. Weather Card & Animations
+   ────────────────────────────────────────────── */
 /* ── Card ── */
 .card {
   background: var(--glass);
@@ -186,6 +209,8 @@ body {
   margin-bottom: 16px;
 }
 
+/* 6. Details Grid (2-column layout)
+   ────────────────────────────────────────────── */
 /* ── Details Grid ── */
 .details-grid {
   display: grid;
@@ -209,6 +234,8 @@ body {
 .detail-label { font-size: 0.7rem; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
 .detail-value { font-size: 0.95rem; font-weight: 600; color: #fff; margin-top: 1px; }
 
+/* 7. Error Message Banner
+   ────────────────────────────────────────────── */
 /* ── Error ── */
 .error-msg {
   background: rgba(233,69,96,0.18);
