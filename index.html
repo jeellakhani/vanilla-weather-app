@@ -10,11 +10,9 @@
 </head>
 <body>
 
-  <!-- Dynamic Background Video -->
-  <video id="bg-video" autoplay muted loop playsinline>
-    <source id="bg-source" src="" type="video/mp4" />
-  </video>
-  <div class="overlay"></div>
+  <!-- Full-screen canvas for weather animation -->
+  <canvas id="bg-canvas"></canvas>
+  <div class="overlay" id="overlay"></div>
 
   <div class="app">
     <h1 class="title">🌤 Weather App</h1>
@@ -47,7 +45,6 @@
     </div>
 
     <div class="error-msg" id="error-msg" style="display:none;"></div>
-
   </div>
 
   <script src="app.js"></script>
